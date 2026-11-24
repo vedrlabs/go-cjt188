@@ -20,16 +20,16 @@ func (s *SER) Value() byte {
 	return s.value
 }
 
-// ForSend 发送时取当前序列号，并自增刷新（模 256）
+// ForSend 发送前按模 256 加 1 后产生序列号（标准：每次通讯前 +1）
+// 初始为 0 时，第一次发送得到 1；OnReceive 同步为应答 SER 后，下次发送会再 +1，不会重复
 func (s *SER) ForSend() byte {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	v := s.value
 	s.value++
-	return v
+	return s.value
 }
 
-// OnReceive 接收时用对端序列号刷新本地
+// OnReceive 接收时用对端序列号刷新本地（与请求 SER 一致）；下次 ForSend 会在此基础上 +1
 func (s *SER) OnReceive(v byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
