@@ -39,15 +39,57 @@ type CJT1882018Frame struct {
 // Copy copy一个
 func (f *CJT1882018Frame) Copy() *CJT1882018Frame {
 	return &CJT1882018Frame{
-		guide: f.guide,
-		ser:   f.ser,
-		key:   f.key,
+		guide:     f.guide,
+		meterType: f.meterType,
+		ser:       f.ser,
+		key:       f.key,
+		address:   f.address,
+		control:   f.control,
 	}
 }
 
 // BindMeterType 绑定表类型
 func (f *CJT1882018Frame) BindMeterType(meterType MeterType) *CJT1882018Frame {
 	f.meterType = meterType
+	return f
+}
+
+// BindAddress 绑定地址域（原始值 A0~A6，共 7 字节）
+func (f *CJT1882018Frame) BindAddress(raw []byte) error {
+	if len(raw) != 7 {
+		return fmt.Errorf("address length error: need 7 bytes, got %d", len(raw))
+	}
+	addr := buildAddress()
+	if err := addr.decode(raw); err != nil {
+		return err
+	}
+	f.address = addr
+	return nil
+}
+
+// BindAddressHex 绑定地址域（正序十六进制表号 5 字节、厂家编码 2 字节，内部反转为线序）
+func (f *CJT1882018Frame) BindAddressHex(addrHex, manufacturerHex string) error {
+	addr := buildAddress()
+	if err := addr.decodeHex(addrHex, manufacturerHex); err != nil {
+		return err
+	}
+	f.address = addr
+	return nil
+}
+
+// BindControl 绑定控制域（原始值，1 字节控制码）
+func (f *CJT1882018Frame) BindControl(raw byte) error {
+	ctrl := buildControl()
+	if err := ctrl.decode(raw); err != nil {
+		return err
+	}
+	f.control = ctrl
+	return nil
+}
+
+// BindControlFields 按字段绑定控制域
+func (f *CJT1882018Frame) BindControlFields(direction Direction, abnormal Abnormal, mode TransferMode, function Function) *CJT1882018Frame {
+	f.control = BuildControl(direction, abnormal, mode, function)
 	return f
 }
 
@@ -69,7 +111,7 @@ func (f *CJT1882018Frame) Control() *Control {
 // BindDecryptKey 绑定解密密钥（16字节 SM4 密钥）
 func (f *CJT1882018Frame) BindDecryptKey(key []byte) error {
 	if len(key) != 16 {
-		return fmt.Errorf("SM4密钥长度错误: 需要16字节, 实际%d字节", len(key))
+		return fmt.Errorf("SM4 key length error: need 16 bytes, got %d", len(key))
 	}
 	f.key = append([]byte(nil), key...)
 	return nil

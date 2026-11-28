@@ -66,10 +66,11 @@ if frame.IsAbnormalResponse() {
 ### 快速开始：发送读
 
 ```go
-// 先保证 frame 上已有地址（通常来自上次 Decode，或自行绑定）
-req, err := frame.Copy().
-    BindMeterType(cjt188.MeterTypeColdWater).
-    Read(0x90, 0x1F, false) // DI0 DI1，encrypt=false 明文
+// 先保证 frame 上已有地址（通常来自上次 Decode，或自行绑定原始值）
+f := frame.Copy().BindMeterType(cjt188.MeterTypeColdWater)
+_ = f.BindAddress([]byte{0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11}) // A0~A6 原始 7 字节
+// _ = f.BindControl(0x01) // 可选：绑定原始 1 字节控制码（Read/Write 会自行设置）
+req, err := f.Read(0x90, 0x1F, false) // DI0 DI1，encrypt=false 明文
 _ = err
 _ = req // 完整报文：前导字 + 68H ... 16H
 ```
@@ -108,6 +109,8 @@ cjt188.EncodeWriteDataWithDecimals(7.1180, 4, 4, true, cjt188.UnitM3H)
 |-----|------|
 | `BuildCJT1882018Frame` | 创建会话 Frame |
 | `Copy` | 复制发送用 Frame（共享 ser/key/guide） |
+| `BindMeterType` / `BindAddress` / `BindAddressHex` / `BindControl` / `BindControlFields` | 绑定表类型 / 地址原始值 / 正序十六进制表号+厂家编码 / 控制码原始值 / 控制码字段 |
+| `BindDecryptKey` | 绑定 16 字节 SM4 密钥 |
 | `Decode` / `Encode` | 解析 / 组帧 |
 | `Read` / `Write` | 生成读/写请求报文 |
 | `ReadResult` / `WriteResult` | 正常应答取 DI 与业务数据 |
@@ -166,9 +169,10 @@ if frame.IsReadData() && frame.IsNormalResponse() {
 ### Send read
 
 ```go
-req, err := frame.Copy().
-    BindMeterType(cjt188.MeterTypeColdWater).
-    Read(0x90, 0x1F, false) // DI0, DI1, encrypt=false
+f := frame.Copy().BindMeterType(cjt188.MeterTypeColdWater)
+_ = f.BindAddress([]byte{0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11}) // raw A0~A6
+// _ = f.BindControl(0x01) // optional: raw 1-byte control (Read/Write set their own)
+req, err := f.Read(0x90, 0x1F, false) // DI0, DI1, encrypt=false
 _ = err
 _ = req
 ```
@@ -206,6 +210,8 @@ cjt188.EncodeWriteDataWithDecimals(7.1180, 4, 4, true, cjt188.UnitM3H)
 |-----|-------------|
 | `BuildCJT1882018Frame` | Create a session frame |
 | `Copy` | Clone for sending (shares ser/key/guide) |
+| `BindMeterType` / `BindAddress` / `BindAddressHex` / `BindControl` / `BindControlFields` | Bind meter type / raw address / hex meter+mfr (MSB first) / raw control / control fields |
+| `BindDecryptKey` | Bind 16-byte SM4 key |
 | `Decode` / `Encode` | Parse / build frames |
 | `Read` / `Write` | Build read/write request frames |
 | `ReadResult` / `WriteResult` | Extract DI + payload from normal responses |

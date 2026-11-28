@@ -2,6 +2,7 @@ package go_cjt188
 
 import (
 	"encoding/hex"
+	"fmt"
 )
 
 func buildAddress() *Address {
@@ -25,6 +26,28 @@ func (a *Address) TheoreticalLength() byte {
 func (a *Address) decode(data []byte) error {
 	copy(a.addr[:], data[0:5])
 	copy(a.manufacturerCode[:], data[5:7])
+	return nil
+}
+
+// decodeHex 用正序十六进制表号、厂家编码解码（内部反转为线序低地址在前）
+// addrHex 须解出 5 字节，manufacturerHex 须解出 2 字节。
+func (a *Address) decodeHex(addrHex, manufacturerHex string) error {
+	addr, err := hex.DecodeString(addrHex)
+	if err != nil {
+		return fmt.Errorf("meter address hex decode failed: %w", err)
+	}
+	if len(addr) != 5 {
+		return fmt.Errorf("meter address length error: need 5 bytes, got %d", len(addr))
+	}
+	mfr, err := hex.DecodeString(manufacturerHex)
+	if err != nil {
+		return fmt.Errorf("manufacturer code hex decode failed: %w", err)
+	}
+	if len(mfr) != 2 {
+		return fmt.Errorf("manufacturer code length error: need 2 bytes, got %d", len(mfr))
+	}
+	copy(a.addr[:], a.reverse(addr))
+	copy(a.manufacturerCode[:], a.reverse(mfr))
 	return nil
 }
 

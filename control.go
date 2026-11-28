@@ -4,6 +4,16 @@ func buildControl() *Control {
 	return &Control{}
 }
 
+// BuildControl 按字段组成控制码
+func BuildControl(direction Direction, abnormal Abnormal, mode TransferMode, function Function) *Control {
+	return &Control{
+		direction: direction,
+		abnormal:  abnormal,
+		mode:      mode,
+		function:  function,
+	}
+}
+
 // Direction 传送方向（D7）
 type Direction byte
 
